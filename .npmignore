@@ -4,5 +4,5 @@ node_modules
 # Everything else (template/, cli.js, configs) must be published
 !.gitignore
 !.npmignore
-!.prettier*
 !.editorconfig
+!template/.gitignore

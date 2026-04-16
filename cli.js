@@ -9,37 +9,49 @@ import readline from 'readline';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = path.join(__dirname, 'template');
 
+const PLACEHOLDERS = {
+  '{{name}}': 'name',
+  '{{description}}': 'description',
+  '{{license}}': 'license',
+  '{{github-user}}': 'githubUser',
+};
+
 function replacePlaceholders(content, answers) {
   return content.replace(
     /{{name}}|{{description}}|{{license}}|{{github-user}}/g,
     (match) => {
-      const map = {
-        '{{name}}': answers.name,
-        '{{description}}': answers.description,
-        '{{license}}': answers.license,
-        '{{github-user}}': answers.githubUser,
-      };
-      return map[match] ?? match;
+      const key = PLACEHOLDERS[match];
+      return answers[key] ?? match;
     },
   );
 }
 
-async function processDirectory(srcDir, destDir, answers) {
-  await fs.ensureDir(destDir);
-  const entries = await fs.readdir(srcDir, { withFileTypes: true });
-
+async function walkDir(dir, callback) {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
-    const srcPath = path.join(srcDir, entry.name);
-    const destPath = path.join(destDir, entry.name);
-
+    const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      await processDirectory(srcPath, destPath, answers);
-    } else if (entry.isFile()) {
-      let content = await fs.readFile(srcPath, 'utf8');
-      content = replacePlaceholders(content, answers);
-      await fs.outputFile(destPath, content, 'utf8');
+      await walkDir(fullPath, callback);
+    } else {
+      await callback(fullPath);
     }
   }
+}
+
+async function scaffoldTemplate(srcDir, destDir, answers) {
+  await fs.copy(srcDir, destDir);
+
+  // npm ignores .gitignore, rename it back after copy
+  const gitignoreTxt = path.join(destDir, 'gitignore.txt');
+  if (await fs.pathExists(gitignoreTxt)) {
+    await fs.rename(gitignoreTxt, path.join(destDir, '.gitignore'));
+  }
+
+  await walkDir(destDir, async (filePath) => {
+    const content = await fs.readFile(filePath, 'utf8');
+    const replaced = replacePlaceholders(content, answers);
+    await fs.outputFile(filePath, replaced, 'utf8');
+  });
 }
 
 function prompt(question) {
@@ -121,7 +133,7 @@ async function run() {
 
   console.log('\n  Creating project...\n');
 
-  await processDirectory(TEMPLATE_DIR, destDir, answers);
+  await scaffoldTemplate(TEMPLATE_DIR, destDir, answers);
 
   if (answers.install) {
     console.log('  Installing dependencies...\n');

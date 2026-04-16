@@ -1,6 +1,6 @@
 {
   "name": "@kumarad9/create-package",
-  "version": "1.0.3",
+  "version": "1.0.11",
   "type": "module",
   "description": "Scaffold a TypeScript package with Rollup, Vitest, Husky, and more",
   "bin": {
