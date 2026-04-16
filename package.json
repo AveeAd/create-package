@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Scaffold a TypeScript package with Rollup, Vitest, Husky, and more",
   "bin": {
-    "@kumarad/create-package": "./cli.js"
+    "@kumarad9/create-package": "./cli.js"
   },
   "engines": {
     "node": ">=18"
